@@ -70,7 +70,7 @@ function add_dir_links {
     local in_dir="$1"
     local out_dir="$2"
 
-    for dir in "${in_dir}/*/"; do
+    for dir in "${in_dir}"/*/; do
         add_dir_link "${dir}" "${out_dir}"
     done
 }
