@@ -60,8 +60,7 @@ function add_dir_links {
     local in_dir="$1"
     local out_dir="$2"
 
-    # TODO: Replace with glob.
-    find "${in_dir}" -mindepth 1 -maxdepth 1 -type d -print0 | sort -z | while read -r -d '' dir; do
+    for dir in "${in_dir}/*/"; do
         add_dir_link "${dir}" "${out_dir}"
     done
 }
