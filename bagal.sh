@@ -38,6 +38,11 @@ function parse_dir {
     cp main.css "${out}"/main.css
 }
 
+# add_images [in_dir] [out_dir]
+# Add all images found in [in_dir] and put them in [out_dir]
+#
+# in_dir: directory containing images
+# out_dir: directory where gallery for given directory should be.
 function add_images {
     local in_dir="$1"
     local out_dir="$2"
@@ -47,6 +52,11 @@ function add_images {
     done
 }
 
+# add_videos [in_dir] [out_dir]
+# Add all videos found in [in_dir] and put them in [out_dir]
+#
+# in_dir: directory containing videos
+# out_dir: directory where gallery for given directory should be.
 function add_videos {
     local in_dir="$1"
     local out_dir="$2"
@@ -103,6 +113,13 @@ function add_dir_link {
     montage -quiet "${files[@]:0:$((gridx * gridy))}" -background none -tile "${gridx}X${gridy}" -geometry "$((THUMB_MAX_X / gridx))X$((THUMB_MAX_Y / gridy))+0+0" "${m_path}"
 }
 
+# add_image [image_path] [out_dir]
+# Create a thumbnail and a scaled version the image found at [image_path] and
+# put them in [out_dir].
+#
+# image_path: path to image
+# out_dir:    directory for storing thumbnails and scales of image found at the
+#             given path
 function add_image {
     local image_path="$1"
     local out_dir="$2"
@@ -124,6 +141,13 @@ function add_image {
     write_node "${text}" "${out_dir}"
 }
 
+# add_video [video_path] [out_dir]
+# Create a thumbnail and a webm version the video found at [video_path] and
+# put them in [out_dir].
+#
+# video_path: path to video
+# out_dir:    directory for storing thumbnails and webm version video found at 
+#             the given path
 function add_video {
     local video_path="$1"
     local out_dir="$2"
