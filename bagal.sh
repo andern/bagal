@@ -168,7 +168,7 @@ function write_node {
     local out_dir="$2"
 
     printf '<div class="node-container">\n' >> "${out_dir}/index.html"
-    printf '<div class="node" style="width: %spx; height: %spx;">\n' "${THUMB_MAX_X}" "${THUMB_MAX_Y}" >> "${out_dir}/index.html"
+    printf '<div class="node">\n' >> "${out_dir}/index.html"
     printf '%s\n' "${text}" >> "${out_dir}/index.html"
     printf '</div>\n' >> "${out_dir}/index.html"
     printf '</div>\n' >> "${out_dir}/index.html"

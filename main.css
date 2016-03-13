@@ -2,10 +2,25 @@ body {
     background: #555;
 }
 
+.gallery-container {
+    text-align: justify;
+    -ms-text-justify: distribute-all-lines;
+    text-justify: distribute-all-lines;
+}
+
 .node-container {
-    float: left;
+    vertical-align: top;
+    display: inline-block;
+    *display: inline;
     margin: 1px;
     background: #555;
+}
+
+.stretch {
+    width: 100%;
+    display: inline-block;
+    font-size: 0;
+    line-height: 0;
 }
 
 .node {
