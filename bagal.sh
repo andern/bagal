@@ -89,7 +89,11 @@ function add_dir_link {
     local x=$((THUMB_MAX_X / 3 ))
     local y=$((THUMB_MAX_Y / 3 ))
 
-    text="<a class='image' href='${dirname}/index.html'><img data-src='${dirname}.jpg' /><h2>${dirname//_/ }</h2></a>"
+    text="
+<a class='image' href='${dirname}/index.html'>
+    <img data-src='${dirname}.jpg' />
+    <h2>${dirname//_/ }</h2>
+</a>"
     write_node "${text}" "${out_dir}"
 
     rm "${m_path}"
@@ -188,7 +192,12 @@ function add_video {
                -frames:v 1 "${new_path}.jpg"\
                -n < /dev/null
     fi
-    text="<a href='${name}.webm'><video controls> <source src='${name}.webm'> </video></a>"
+    text="
+<a href='${name}.webm'>
+    <video controls>
+        <source src='${name}.webm'>
+    </video>
+</a>"
     write_node "${text}" "${out_dir}"
 }
 
