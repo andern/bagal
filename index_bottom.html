@@ -1,8 +1,75 @@
-    <div class="stretch"></div>
+      <img id="focus" src="." />
     </div>
     <script>
-      $(document).ready(function() {
-          $("img").unveil(500);
+      const SCROLL_PX_CLOSE = 250;
+      const PERCENT_OF_IMAGE_ARROWS = 0.2;
+
+      let cont = document.querySelector('#container');
+      let focus = document.querySelector('#focus');
+      let body = document.querySelector('body');
+      let imgs = document.querySelectorAll('a:not(.folder) > img');
+
+      let mod = (i, n) => ((i % n) + n) % n;
+      let index = 0;
+      let scrollStart = 0;
+
+      let focusImage = (idx) => {
+        let i = mod(idx, imgs.length);
+        index = i
+        scrollStart = window.pageYOffset;
+
+        focus.src = imgs[i].parentNode.href;
+        focus.style.display = 'block';
+
+        body.classList.add('focus');
+      }
+
+      let closePreview = () => {
+        focus.src = '';
+        focus.style.display = 'none';
+
+        body.classList.remove('focus');
+      }
+
+      let imageClickHandler = (idx) => (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        focusImage(idx);
+      };
+
+      document.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (e.target == focus) return;
+        closePreview();
+      });
+
+      for (let i = 0; i < imgs.length; i++) {
+        imgs[i].addEventListener('click', imageClickHandler(i));
+      }
+
+      document.addEventListener('scroll', (e) => {
+        if (Math.abs(window.pageYOffset - scrollStart) >= SCROLL_PX_CLOSE) {
+          closePreview();
+        }
+      });
+
+      focus.addEventListener('click', (e) => {
+        let width = e.target.width;
+
+        if (e.offsetX < width*PERCENT_OF_IMAGE_ARROWS)
+          focusImage(index - 1);
+        else if (e.offsetX > width*(1 - PERCENT_OF_IMAGE_ARROWS))
+          focusImage(index + 1);
+      });
+
+      document.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+          closePreview();
+          return;
+        }
+
+        if (e.key === 'ArrowRight') focusImage(index + 1);
+        else if (e.key === 'ArrowLeft') focusImage(index - 1);
       });
     </script>
   </body>

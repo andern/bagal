@@ -2,18 +2,7 @@
 # bagal /ˈbeɪɡəl/ (bagal ain't a gallery) is a static gallery generator in bash.
 # Copyright 2016, Andreas Halle
 
-#INDIR=/home/USER/pics
-#OUTDIR=/home/USER/gallery
-#INDIR=/home/ah/nas/pics
-#OUTDIR=/home/ah/gallery/priv
-INDIR=/home/ah/delete/testdata
-OUTDIR=/home/ah/gallery
-
-THUMB_MAX_X=600
-THUMB_MAX_Y=400
-
-SCALE_MAX_X=1200
-SCALE_MAX_Y=800
+. ./.config
 
 shopt -s nullglob # Don't return itself on dir/* if dir is empty
 shopt -s nocaseglob # Case insensitive globbing
@@ -39,7 +28,6 @@ function parse_dir {
     add_dir_links "${out}" "${out}"
 
     cat index_bottom.html >> "${out}/index.html"
-    cp main.css "${out}"/main.css
 }
 
 # add_images [in_dir] [out_dir]
@@ -83,41 +71,42 @@ function add_dir_link {
     local in_dir="$1"
     local out_dir="$2"
 
+    local files=("${in_dir}"/*.jpg)
+    local numfiles=${#files[@]}
+
+    if [ $numfiles -le 0 ]; then
+        return
+    fi
+
     local dirname=`basename "${in_dir}"`
     local m_path="${out_dir}/${dirname}.jpg"
 
     local x=$((THUMB_MAX_X / 3 ))
     local y=$((THUMB_MAX_Y / 3 ))
 
-    text="
-<a class='image' href='${dirname}/index.html'>
-    <img data-src='${dirname}.jpg' />
-    <h2>${dirname//_/ }</h2>
-</a>"
+    text="<a class='folder' href='${dirname}/index.html'>
+        <img src='${dirname}.jpg' alt='${dirname//_/ }'/>
+      </a>"
     write_node "${text}" "${out_dir}"
-
-    rm "${m_path}"
 
     if [ -f "${m_path}" ]; then
         return
     fi
+
     printf '%s\n' "${m_path}"
 
-    local files=("${in_dir}"/*.jpg)
-    local numfiles=${#files[@]}
-    if [ $numfiles -le 0 ]; then
-        return
-    fi
-    if [ $numfiles -ge 9 ]; then
-        numfiles=8
-    fi
-
     local gridx=3
-    if [ $numfiles -lt 3 ]; then
-        gridx=$numfiles
+    local gridy=3
+    if [ $numfiles -le 8 ]; then
+        gridx=2
+        gridy=2
     fi
 
-    local gridy=$(((numfiles + 2) / 3))
+    if [ $numfiles -lt 3 ]; then
+        gridx=1
+        gridy=1
+    fi
+
     montage -quiet\
             -background none\
             -tile "${gridx}X${gridy}"\
@@ -160,7 +149,9 @@ function add_image {
         printf '%s\n' "${s_path}"
     fi
 
-    text="<a href='s_${name}'><img data-src='t_${name}' /></a>"
+    text="<a href='s_${name}'>
+        <img src='t_${name}' />
+      </a>"
     write_node "${text}" "${out_dir}"
 }
 
@@ -178,14 +169,15 @@ function add_video {
     local name=`basename "${video_path}"`
     local new_path="${out_dir}/${name}"
 
-    if [ ! -f "${new_path}.webm" ]; then
-        ffmpeg -i "${video_path}"\
-               -c:v libvpx\
-               -crf 10\
-               -b:v 1M\
-               -c:a libvorbis\
-               "${new_path}.webm"\
-               -n < /dev/null
+    if [ ! -f "${new_path}" ]; then
+        #ffmpeg -i "${video_path}"\
+        #       -c:v libvpx\
+        #       -crf 10\
+        #       -b:v 1M\
+        #       -c:a libvorbis\
+        #       "${new_path}.webm"\
+        #       -n < /dev/null
+        cp -v "${video_path}" "${new_path}"
         ffmpeg -ss 4\
                -i "${video_path}"\
                -s "${THUMB_MAX_X}x${THUMB_MAX_Y}"\
@@ -193,11 +185,11 @@ function add_video {
                -n < /dev/null
     fi
     text="
-<a href='${name}.webm'>
-    <video controls>
-        <source src='${name}.webm'>
-    </video>
-</a>"
+      <a href='${name}'>
+        <video controls width='${THUMB_MAX_X}' height='${THUMB_MAX_Y}'>
+          <source src='${name}'>
+        </video>
+      </a>"
     write_node "${text}" "${out_dir}"
 }
 
@@ -205,11 +197,7 @@ function write_node {
     local text="$1"
     local out_dir="$2"
 
-    printf '<div class="node-container">\n' >> "${out_dir}/index.html"
-    printf '<div class="node">\n' >> "${out_dir}/index.html"
-    printf '%s\n' "${text}" >> "${out_dir}/index.html"
-    printf '</div>\n' >> "${out_dir}/index.html"
-    printf '</div>\n' >> "${out_dir}/index.html"
+    printf '      %s\n' "${text}" >> "${out_dir}/index.html"
 }
 
 if [ ! -e "${INDIR}" ]; then
