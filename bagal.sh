@@ -2,6 +2,10 @@
 # bagal /ˈbeɪɡəl/ (bagal ain't a gallery) is a static gallery generator in bash.
 # Copyright 2016, Andreas Halle
 
+# TODO:
+# Use identity to get image size of video preview to set correct height/width
+# Use ffprobe to get length of video to get thumbnail based on wadsworth const
+
 . ./.config
 
 shopt -s nullglob # Don't return itself on dir/* if dir is empty
@@ -25,7 +29,7 @@ function parse_dir {
 
     add_images "${path}" "${out}"
     add_videos "${path}" "${out}"
-    add_dir_links "${out}" "${out}"
+    add_dir_links "${path}" "${out}"
 
     cat index_bottom.html >> "${out}/index.html"
 }
@@ -39,7 +43,8 @@ function add_images {
     local in_dir="$1"
     local out_dir="$2"
 
-    for pic in "${in_dir}"/*.jpg; do
+    readarray -d '' pics < <(find "${in_dir}" -maxdepth 1 -type f -iregex "${IMAGE_FILES_REGEX}" -print0)
+    for pic in "${pics[@]}"; do
         add_image "${pic}" "${out_dir}"
     done
 }
@@ -71,7 +76,7 @@ function add_dir_link {
     local in_dir="$1"
     local out_dir="$2"
 
-    local files=("${in_dir}"/*.jpg)
+    readarray -d '' files < <(find "${in_dir}" -type f -iregex "${IMAGE_FILES_REGEX}" -print0)
     local numfiles=${#files[@]}
 
     if [ $numfiles -le 0 ]; then
@@ -80,9 +85,6 @@ function add_dir_link {
 
     local dirname=`basename "${in_dir}"`
     local m_path="${out_dir}/${dirname}.jpg"
-
-    local x=$((THUMB_MAX_X / 3 ))
-    local y=$((THUMB_MAX_Y / 3 ))
 
     text="<a class='folder' href='${dirname}/index.html'>
         <img src='${dirname}.jpg' alt='${dirname//_/ }'/>
@@ -93,25 +95,31 @@ function add_dir_link {
         return
     fi
 
+    # Create montage
+
+    # Get max grid size based on number of available files
+    local grid=${MONTAGE_MAX_SQUARE}
+    for (( i=$((grid - 1)); i>0; i-- ))
+    do
+        if [ $numfiles -lt $((grid * grid)) ]; then
+            grid=${i}
+        fi
+    done
+
+    # Get $take number of pictures evenly distributed among $files
+    local take=$(( grid * grid ))
+    declare -a mfiles
+    for (( i=0; i<${take}; i++ ))
+    do
+        mfiles=("${mfiles[@]}" "${files[$((i * numfiles / take - 1))]}")
+    done
+
     printf '%s\n' "${m_path}"
-
-    local gridx=3
-    local gridy=3
-    if [ $numfiles -le 8 ]; then
-        gridx=2
-        gridy=2
-    fi
-
-    if [ $numfiles -lt 3 ]; then
-        gridx=1
-        gridy=1
-    fi
-
     montage -quiet\
             -background none\
-            -tile "${gridx}X${gridy}"\
-            -geometry "$((THUMB_MAX_X / gridx))X$((THUMB_MAX_Y / gridy))+0+0"\
-            "${files[@]:0:$((gridx * gridy))}"\
+            -tile "${grid}X${grid}"\
+            -geometry "$((THUMB_MAX_X / grid))X$((THUMB_MAX_Y / grid))+0+0"\
+            "${mfiles[@]}"\
             "${m_path}"
 }
 
@@ -146,7 +154,7 @@ function add_image {
                 --\
                 "${image_path}"\
                 "${t_path}"
-        printf '%s\n' "${s_path}"
+        printf '%s\n' "${t_path}"
     fi
 
     text="<a href='s_${name}'>
@@ -177,19 +185,19 @@ function add_video {
         #       -c:a libvorbis\
         #       "${new_path}.webm"\
         #       -n < /dev/null
+        printf '%s\n' "${new_path}"
         cp -v "${video_path}" "${new_path}"
+        printf '%s\n' "${new_path}.jpg"
         ffmpeg -ss 4\
                -i "${video_path}"\
                -s "${THUMB_MAX_X}x${THUMB_MAX_Y}"\
                -frames:v 1 "${new_path}.jpg"\
                -n < /dev/null
     fi
-    text="
-      <a href='${name}'>
-        <video controls width='${THUMB_MAX_X}' height='${THUMB_MAX_Y}'>
+    text="<video width='${THUMB_MAX_X}' height='${THUMB_MAX_Y}'
+poster='${name}.jpg' preload='none' controls>
           <source src='${name}'>
-        </video>
-      </a>"
+        </video>"
     write_node "${text}" "${out_dir}"
 }
 
