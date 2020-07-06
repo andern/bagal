@@ -106,8 +106,8 @@ function add_dir_link {
         fi
     done
 
-    # Get $take number of pictures evenly distributed among $files
-    local take=$(( grid * grid ))
+    # Get a number of pictures evenly distributed among $files
+    local take=$((grid * grid))
     declare -a mfiles
     for (( i=0; i<${take}; i++ ))
     do
@@ -186,15 +186,18 @@ function add_video {
         #       "${new_path}.webm"\
         #       -n < /dev/null
         printf '%s\n' "${new_path}"
-        cp -v "${video_path}" "${new_path}"
+        cp "${video_path}" "${new_path}"
         printf '%s\n' "${new_path}.jpg"
-        ffmpeg -ss 4\
+        ffmpeg -hide_banner -loglevel panic\
+               -ss 4\
                -i "${video_path}"\
-               -s "${THUMB_MAX_X}x${THUMB_MAX_Y}"\
-               -frames:v 1 "${new_path}.jpg"\
+               -vframes 1\
+               -vf "scale=${THUMB_MAX_X}:${THUMB_MAX_Y}:force_original_aspect_ratio=increase,crop=${THUMB_MAX_X}:${THUMB_MAX_Y}"\
+               "${new_path}.jpg"\
                -n < /dev/null
+        read width height <<< $(identify -format '%w %h' "${new_path}.jpg")
     fi
-    text="<video width='${THUMB_MAX_X}' height='${THUMB_MAX_Y}'
+    text="<video width='${width}' height='${height}'
 poster='${name}.jpg' preload='none' controls>
           <source src='${name}'>
         </video>"
