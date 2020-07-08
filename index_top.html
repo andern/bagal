@@ -4,10 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-      body.focus > * > *:not(#focus) {
-        filter: saturate(20%) grayscale(100%) contrast(50%) brightness(50%) blur(2px);
-      }
-
       #container {
         text-align: justify;
         text-align-last: justify;
@@ -15,11 +11,20 @@
 
       #focus {
         position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background-color: #222222;
+        display: none;
+      }
+
+      #focus img {
+        position: fixed;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+        transform: translate(-50%, -50%) translate(calc(var(--dx, 0px)));
         max-width: 100%;
-        display: none;
         border: 5px solid white;
         filter: drop-shadow(8px 8px 10px black);
       }
