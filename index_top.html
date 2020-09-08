@@ -11,23 +11,36 @@
 
       #focus {
         position: fixed;
-        top: 0;
-        bottom: 0;
         left: 0;
-        right: 0;
+        top: 0;
+        width: 100%;
         background-color: #222222;
         display: none;
+        overflow: hidden;
       }
 
-      #focus img {
-        position: fixed;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%) translate(calc(var(--dx, 0px)));
-        max-width: 100%;
-        border: 5px solid white;
-        filter: drop-shadow(8px 8px 10px black);
+      #slider {
+        display: flex;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
       }
+
+      .slider-item {
+        display: flex;
+        height: 100vh;
+        min-width: 100vw;
+        justify-content: center;
+        align-items: center;
+        scroll-snap-align: center;
+      }
+
+      .slider-item > img {
+        max-height: 100vh;
+        max-width: 100vw;
+      }
+
+      .noscroll { overflow: hidden; }
 
       a {
         text-decoration-line: none;

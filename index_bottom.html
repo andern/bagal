@@ -1,77 +1,81 @@
       <div id="focus">
-        <img src="." />
+        <div id="slider">
+          <div class="slider-item">
+            <img />
+          </div>
+        </div>
       </div>
     </div>
     <script>
-      const SCROLL_PX_CLOSE = 250;
-      const PERCENT_OF_IMAGE_ARROWS = 0.2;
-
-      let cont = document.querySelector('#container');
-      let focus = document.querySelector('#focus > img');
+      let slider = document.querySelector('#slider');
       let focusContainer = document.querySelector('#focus');
       let body = document.querySelector('body');
       let imgs = document.querySelectorAll('a:not(.folder) > img');
 
-      let mod = (i, n) => ((i % n) + n) % n;
       let index = 0;
-      let scrollStart = 0;
 
-      let x = 0;
-      let dx = 0;
-      let sliding = false;
+      function bufferImages(i) {
+        const curr = slider.children[i].firstElementChild;
+        if (curr.src.length === 0)
+          curr.src = imgs[i].parentNode.href;
 
-      function unify(e) {
-        return e.changedTouches ? e.changedTouches[0] : e
-      };
+        if (i > 0) {
+          const prev = slider.children[i - 1].firstElementChild;
+          if (prev.src.length === 0)
+            prev.src = imgs[i - 1].parentNode.href;
+        }
 
-      function slideStart (e) {
-        x = unify(e).clientX;
-        sliding = true;
+        if (i < imgs.length - 1) {
+          const next = slider.children[i + 1].firstElementChild;
+          if (next.src.length === 0)
+            next.src = imgs[i + 1].parentNode.href;
+        }
       }
 
-      function slideMove(e) {
-        e.preventDefault();
-        if (!sliding) return;
-        dx = Math.round(unify(e).clientX - x);
-        focus.style.setProperty('--dx', dx + 'px');
+      function addSliderItems() {
+        const obs = new IntersectionObserver(entries => {
+          let entry = entries.find(entry => entry.isIntersecting);
+          if (entry == null) return;
+
+          let idx = Array.from(slider.children).findIndex(child => child === entry.target);
+          bufferImages(idx);
+        }, { threshold: 0.20 });
+
+        for (let i = 1; i < imgs.length; i++) {
+          let child = slider.firstElementChild.cloneNode(true);
+          obs.observe(child);
+          slider.appendChild(child);
+        }
       }
 
-      function slideEnd(e) {
-        if (!sliding) return;
-        sliding = false;
+      function focusImage(idx) {
+        if (slider.childElementCount === 1)
+          addSliderItems();
+        bufferImages(idx);
+        index = idx
 
-        focusImage(dx > 0 ? index - 1 : index + 1);
-        focus.style.setProperty('--dx', '0px');
-        dx = 0;
+        new IntersectionObserver((entries, observer) => {
+          slider.scrollLeft = slider.children[idx].offsetLeft;
+          observer.unobserve(entries[0].target);
+        }, { threshold: 0.9 }).observe(slider);
+
+        focusContainer.style.display = 'flex';
+        body.classList.toggle('noscroll');
+
       }
 
-      focus.addEventListener('mousedown', slideStart, false);
-      focus.addEventListener('mousemove', slideMove, false);
-      focus.addEventListener('mouseup', slideEnd, false);
-
-      focus.addEventListener('touchstart', slideStart, false);
-      focus.addEventListener('touchmove', slideMove, false);
-      focus.addEventListener('touchend', slideEnd, false);
-
-      let focusImage = (idx) => {
-        let i = mod(idx, imgs.length);
-        index = i
-        scrollStart = window.pageYOffset;
-
-        focus.src = imgs[i].parentNode.href;
-        focusContainer.style.display = 'block';
-      }
-
-      let closePreview = () => {
-        focus.src = '';
+      function closePreview() {
         focusContainer.style.display = 'none';
+        body.classList.toggle('noscroll');
       }
 
-      let imageClickHandler = (idx) => (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        focusImage(idx);
-      };
+      function imageClickHandler(idx) {
+        return (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          focusImage(idx);
+        };
+      }
 
       document.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -83,20 +87,20 @@
         imgs[i].addEventListener('click', imageClickHandler(i));
       }
 
-      document.addEventListener('scroll', (e) => {
-        if (Math.abs(window.pageYOffset - scrollStart) >= SCROLL_PX_CLOSE) {
-          closePreview();
-        }
-      });
-
       document.addEventListener('keyup', (e) => {
         if (e.key === 'Escape') {
           closePreview();
           return;
         }
 
-        if (e.key === 'ArrowRight') focusImage(index + 1);
-        else if (e.key === 'ArrowLeft') focusImage(index - 1);
+        if (e.key === 'ArrowRight') {
+          index = Math.min(index + 1, imgs.length - 1);
+          slider.children[index].scrollIntoView();
+        }
+        else if (e.key === 'ArrowLeft') {
+          index = Math.max(index - 1, 0);
+          slider.children[index].scrollIntoView();
+        }
       });
     </script>
   </body>
