@@ -5,8 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
       #container {
+        /* For browsers without flex support */
         text-align: justify;
         text-align-last: justify;
+        /**/
+
+        display: flex;
+        flex-wrap: wrap;
       }
 
       #focus {
@@ -43,16 +48,25 @@
       .noscroll { overflow: hidden; }
 
       a {
+        display: contents;
         text-decoration-line: none;
       }
 
       a > img {
         transition: .2s ease-in-out;
         opacity: 1;
+        object-fit: cover;
+        flex-grow: 1;
+        margin: 2px;
       }
 
       a > img:hover {
         opacity: 0.9;
+      }
+
+      video {
+        flex-grow: 1;
+        object-fit: cover;
       }
     </style>
     <title>Gallery</title>

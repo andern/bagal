@@ -158,7 +158,7 @@ function add_image {
     fi
 
     text="<a href='s_${name}'>
-        <img src='t_${name}' />
+        <img src='t_${name}' style='height: ${THUMB_MAX_Y}px;'/>
       </a>"
     write_node "${text}" "${out_dir}"
 }
@@ -195,8 +195,8 @@ function add_video {
                -vf "scale=${THUMB_MAX_X}:${THUMB_MAX_Y}:force_original_aspect_ratio=increase,crop=${THUMB_MAX_X}:${THUMB_MAX_Y}"\
                "${new_path}.jpg"\
                -n < /dev/null
-        read width height <<< $(identify -format '%w %h' "${new_path}.jpg")
     fi
+    read width height <<< $(identify -format '%w %h' "${new_path}.jpg")
     text="<video width='${width}' height='${height}'
 poster='${name}.jpg' preload='none' controls>
           <source src='${name}'>

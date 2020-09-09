@@ -39,6 +39,7 @@
 
           let idx = Array.from(slider.children).findIndex(child => child === entry.target);
           bufferImages(idx);
+          index = idx;
         }, { threshold: 0.20 });
 
         for (let i = 1; i < imgs.length; i++) {
@@ -67,6 +68,7 @@
       function closePreview() {
         focusContainer.style.display = 'none';
         body.classList.toggle('noscroll');
+        imgs[index].scrollIntoView();
       }
 
       function imageClickHandler(idx) {
