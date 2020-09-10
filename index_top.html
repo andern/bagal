@@ -14,24 +14,36 @@
         flex-wrap: wrap;
       }
 
-      #focus {
-        position: fixed;
-        left: 0;
-        top: 0;
-        width: 100%;
-        background-color: #222222;
-        display: none;
-        overflow: hidden;
+      #container::after {
+        content: '';
+        flex-grow: 1e10;
       }
 
       #slider {
-        display: flex;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: #222222;
+        display: none;
         overflow-x: auto;
         overflow-y: hidden;
         scroll-snap-type: x mandatory;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      #slider::-webkit-scrollbar {
+        display: none;
+      }
+
+      .is-hidden {
+        display: none;
       }
 
       .slider-item {
+        display: contents;
         display: flex;
         height: 100vh;
         min-width: 100vw;
@@ -67,6 +79,33 @@
       video {
         flex-grow: 1;
         object-fit: cover;
+      }
+
+      #close {
+        position: fixed;
+        right: 3vh;
+        top: 3vh;
+        width: 3vh;
+        height: 3vh;
+        opacity: 0.6;
+      }
+      #close:hover {
+        opacity: 1;
+        cursor: pointer;
+      }
+      #close:before, #close:after {
+        position: absolute;
+        left: 1.5vh;
+        content: ' ';
+        height: 3vh;
+        width: 2px;
+        background-color: #FFF;
+      }
+      #close:before {
+        transform: rotate(45deg);
+      }
+      #close:after {
+        transform: rotate(-45deg);
       }
     </style>
     <title>Gallery</title>

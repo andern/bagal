@@ -1,32 +1,35 @@
-      <div id="focus">
-        <div id="slider">
-          <div class="slider-item">
-            <img />
-          </div>
+      <div id="slider">
+        <div id="close" class="is-hidden"></div>
+        <div class="slider-item">
+          <img />
         </div>
       </div>
     </div>
     <script>
-      let slider = document.querySelector('#slider');
-      let focusContainer = document.querySelector('#focus');
       let body = document.querySelector('body');
-      let imgs = document.querySelectorAll('a:not(.folder) > img');
-
+      let imgs = document.querySelectorAll('#container > a:not(.folder) > img');
+      let slider = document.querySelector('#slider');
+      let close = document.querySelector('#close');
       let index = 0;
 
+      function getSliderItems() {
+        return document.querySelectorAll('#slider > .slider-item');
+      }
+
       function bufferImages(i) {
-        const curr = slider.children[i].firstElementChild;
+        const items = getSliderItems();
+        const curr = items[i].firstElementChild;
         if (curr.src.length === 0)
           curr.src = imgs[i].parentNode.href;
 
         if (i > 0) {
-          const prev = slider.children[i - 1].firstElementChild;
+          const prev = items[i - 1].firstElementChild;
           if (prev.src.length === 0)
             prev.src = imgs[i - 1].parentNode.href;
         }
 
         if (i < imgs.length - 1) {
-          const next = slider.children[i + 1].firstElementChild;
+          const next = items[i + 1].firstElementChild;
           if (next.src.length === 0)
             next.src = imgs[i + 1].parentNode.href;
         }
@@ -37,36 +40,38 @@
           let entry = entries.find(entry => entry.isIntersecting);
           if (entry == null) return;
 
-          let idx = Array.from(slider.children).findIndex(child => child === entry.target);
+          let idx = Array.from(getSliderItems()).findIndex(child => child === entry.target);
           bufferImages(idx);
           index = idx;
         }, { threshold: 0.20 });
 
         for (let i = 1; i < imgs.length; i++) {
-          let child = slider.firstElementChild.cloneNode(true);
+          let child = getSliderItems()[0].cloneNode(true);
           obs.observe(child);
           slider.appendChild(child);
         }
       }
 
       function focusImage(idx) {
-        if (slider.childElementCount === 1)
+        if (getSliderItems().length === 1) {
           addSliderItems();
+          console.log('adding slider items');
+        }
         bufferImages(idx);
         index = idx
 
         new IntersectionObserver((entries, observer) => {
-          slider.scrollLeft = slider.children[idx].offsetLeft;
+          slider.scrollLeft = getSliderItems()[idx].offsetLeft;
           observer.unobserve(entries[0].target);
         }, { threshold: 0.9 }).observe(slider);
 
-        focusContainer.style.display = 'flex';
+        slider.style.display = 'flex';
         body.classList.toggle('noscroll');
 
       }
 
       function closePreview() {
-        focusContainer.style.display = 'none';
+        slider.style.display = 'none';
         body.classList.toggle('noscroll');
         imgs[index].scrollIntoView();
       }
@@ -79,9 +84,13 @@
         };
       }
 
-      document.addEventListener('click', (e) => {
+      slider.addEventListener('click', (e) => {
+        close.classList.toggle('is-hidden');
+      });
+
+      close.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (e.target == focus) return;
+        close.classList.toggle('is-hidden');
         closePreview();
       });
 
@@ -96,12 +105,14 @@
         }
 
         if (e.key === 'ArrowRight') {
+          e.stopPropagation();
           index = Math.min(index + 1, imgs.length - 1);
-          slider.children[index].scrollIntoView();
+          getSliderItems()[index].scrollIntoView();
         }
         else if (e.key === 'ArrowLeft') {
+          e.stopPropagation();
           index = Math.max(index - 1, 0);
-          slider.children[index].scrollIntoView();
+          getSliderItems()[index].scrollIntoView();
         }
       });
     </script>
