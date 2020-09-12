@@ -78,7 +78,6 @@ if [ -z "$OUTDIR" ]; then
 fi
 
 # TODO:
-# Use identity to get image size of video preview to set correct height/width
 # Use ffprobe to get length of video to get thumbnail based on wadsworth const
 
 shopt -s nullglob # Don't return itself on dir/* if dir is empty
@@ -440,7 +439,8 @@ function add_dir_link {
             -tile "${grid}X${grid}"\
             -geometry "$((THUMB_MAX_X / grid))X$((THUMB_MAX_Y / grid))+0+0"\
             "${mfiles[@]}"\
-            "${m_path}"
+            "${m_path}"\
+            2> /dev/null
 }
 
 # add_image [image_path] [out_dir]
@@ -464,7 +464,8 @@ function add_image {
                 -scale "${SCALE_MAX_X}x${SCALE_MAX_Y}"\
                 --\
                 "${image_path}"\
-                "${s_path}"
+                "${s_path}"\
+                2> /dev/null
         if [[ $VERBOSE ]]; then
             printf '%s\n' "${s_path}"
         fi
@@ -475,7 +476,8 @@ function add_image {
                 -thumbnail "${THUMB_MAX_X}x${THUMB_MAX_Y}"\
                 --\
                 "${image_path}"\
-                "${t_path}"
+                "${t_path}"\
+                2> /dev/null
         if [[ $VERBOSE ]]; then
             printf '%s\n' "${t_path}"
         fi
@@ -521,7 +523,7 @@ function add_video {
                "${new_path}.jpg"\
                -n < /dev/null
     fi
-    read width height <<< $(identify -format '%w %h' "${new_path}.jpg")
+    read width height <<< $(identify -format '%w %h' "${new_path}.jpg" 2> /dev/null)
     text="<video width='${width}' height='${height}'
 poster='${name}.jpg' preload='none' controls>
           <source src='${name}'>
