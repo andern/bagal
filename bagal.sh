@@ -1,12 +1,85 @@
 #!/bin/bash
-# bagal /ˈbeɪɡəl/ (bagal ain't a gallery) is a static gallery generator in bash.
-# Copyright 2016, Andreas Halle
+# bagal /ˈbeɪɡəl/ (bagal ain't a gallery) is a static gallery generator.
+# Copyright 2016, 2020 Andreas Halle
+
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# Defaults
+IMAGE_FILES_REGEX=".*\.\(jpe?g\|gif\|png\)$"
+MONTAGE_MAX_SQUARE=4
+THUMB_MAX_X=400
+THUMB_MAX_Y=225
+SCALE_MAX_X=1920
+SCALE_MAX_Y=1080
+
+function version() {
+    echo "bagal v0.1"
+    exit 0
+}
+
+function usage() {
+    echo "Usage: $0 [-i indir] [-o outdir] [-x,y,X,Y number] [-hvV]"
+    echo ""
+    echo "You must supply an input directory (-i) and an output directory (-o)"
+    echo ""
+    echo "  -i    input directory"
+    echo "  -o    output directory"
+    echo "  -x    max width of thumbnail"
+    echo "  -x    max height of thumbnail"
+    echo "  -X    max width of scaled images"
+    echo "  -Y    max height of scaled images"
+    echo ""
+    echo "  -h    display this help"
+    echo "  -v    enable verbose mode"
+    echo "  -V    display version"
+    exit 0
+}
+
+# Process CLI options
+while getopts hi:o:vVx:y:X:Y: flag
+do
+    case "${flag}" in
+        h) usage;;
+        i) INDIR=${OPTARG};;
+        o) OUTDIR=${OPTARG};;
+        v) VERBOSE=true;;
+        V) version;;
+        x) THUMB_MAX_X=${OPTARG};;
+        y) THUMB_MAX_Y=${OPTARG};;
+        X) SCALE_MAX_X=${OPTARG};;
+        Y) SCALE_MAX_Y=${OPTARG};;
+        *) exit 1 ;;
+    esac
+done
+
+if [ $OPTIND -eq 1 ]; then
+    usage
+fi
+
+if [ -z "$INDIR" ]; then
+    echo "$0: the input directory option is required -- i"
+    exit 1
+fi
+
+if [ -z "$OUTDIR" ]; then
+    echo "$0: the output directory option is required -- o"
+    exit 1
+fi
 
 # TODO:
 # Use identity to get image size of video preview to set correct height/width
 # Use ffprobe to get length of video to get thumbnail based on wadsworth const
-
-. ./.config
 
 shopt -s nullglob # Don't return itself on dir/* if dir is empty
 shopt -s nocaseglob # Case insensitive globbing
@@ -114,7 +187,10 @@ function add_dir_link {
         mfiles=("${mfiles[@]}" "${files[$((i * numfiles / take - 1))]}")
     done
 
-    printf '%s\n' "${m_path}"
+    if [[ $VERBOSE ]]; then
+        printf '%s\n' "${m_path}"
+    fi
+
     montage -quiet\
             -background none\
             -tile "${grid}X${grid}"\
@@ -145,7 +221,9 @@ function add_image {
                 --\
                 "${image_path}"\
                 "${s_path}"
-        printf '%s\n' "${s_path}"
+        if [[ $VERBOSE ]]; then
+            printf '%s\n' "${s_path}"
+        fi
     fi
     if [ ! -f "${t_path}" ]; then
         convert -quiet\
@@ -154,7 +232,9 @@ function add_image {
                 --\
                 "${image_path}"\
                 "${t_path}"
-        printf '%s\n' "${t_path}"
+        if [[ $VERBOSE ]]; then
+            printf '%s\n' "${t_path}"
+        fi
     fi
 
     text="<a href='s_${name}'>
@@ -185,9 +265,10 @@ function add_video {
         #       -c:a libvorbis\
         #       "${new_path}.webm"\
         #       -n < /dev/null
-        printf '%s\n' "${new_path}"
         cp "${video_path}" "${new_path}"
-        printf '%s\n' "${new_path}.jpg"
+        if [[ $VERBOSE ]]; then
+            printf '%s\n' "${new_path}.jpg"
+        fi
         ffmpeg -hide_banner -loglevel panic\
                -ss 4\
                -i "${video_path}"\
