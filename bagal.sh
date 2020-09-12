@@ -84,6 +84,250 @@ fi
 shopt -s nullglob # Don't return itself on dir/* if dir is empty
 shopt -s nocaseglob # Case insensitive globbing
 
+HTML_TOP="
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1'>
+    <style>
+      body {
+        margin: 2px;
+      }
+
+      #container {
+        /* For browsers without flex support */
+        text-align: justify;
+        text-align-last: justify;
+        /**/
+
+        display: flex;
+        flex-wrap: wrap;
+      }
+
+      #container::after {
+        content: '';
+        flex-grow: 1e10;
+      }
+
+      #slider {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: #222222;
+        display: none;
+        overflow-x: auto;
+        overflow-y: hidden;
+        scroll-snap-type: x mandatory;
+        -ms-overflow-style: none;  /* IE and Edge */
+        scrollbar-width: none;  /* Firefox */
+      }
+
+      #slider::-webkit-scrollbar {
+        display: none;
+      }
+
+      .is-hidden {
+        display: none;
+      }
+
+      .slider-item {
+        display: contents;
+        display: flex;
+        height: 100%;
+        min-width: 100%;
+        justify-content: center;
+        align-items: center;
+        scroll-snap-align: center;
+      }
+
+      .slider-item > img {
+        max-height: 100%;
+        max-width: 100%;
+      }
+
+      .noscroll { overflow: hidden; }
+
+      a {
+        display: contents;
+      }
+
+      a > img {
+        transition: .2s ease-in-out;
+        opacity: 1;
+        object-fit: cover;
+        flex-grow: 1;
+        margin: 2px;
+        height: ${THUMB_MAX_Y}px;
+      }
+
+      a > img:hover {
+        opacity: 0.9;
+      }
+
+      video {
+        flex-grow: 1;
+        object-fit: cover;
+      }
+
+      #close {
+        position: fixed;
+        right: 3vh;
+        top: 3vh;
+        width: 3vh;
+        height: 3vh;
+        opacity: 0.6;
+      }
+      #close:hover {
+        opacity: 1;
+        cursor: pointer;
+      }
+      #close:before, #close:after {
+        position: absolute;
+        left: 1.5vh;
+        content: ' ';
+        height: 3vh;
+        width: 2px;
+        background-color: #FFF;
+      }
+      #close:before {
+        transform: rotate(45deg);
+      }
+      #close:after {
+        transform: rotate(-45deg);
+      }
+    </style>
+    <title>Gallery</title>
+  </head>
+  <body>
+    <div id='container'>
+"
+
+HTML_BOTTOM="
+      <div id="slider">
+        <div id="close" class="is-hidden"></div>
+        <div class="slider-item">
+          <img />
+        </div>
+      </div>
+    </div>
+    <script>
+      let body = document.querySelector('body');
+      let imgs = document.querySelectorAll('#container > a:not(.folder) > img');
+      let slider = document.querySelector('#slider');
+      let close = document.querySelector('#close');
+      let index = 0;
+
+      function getSliderItems() {
+        return document.querySelectorAll('#slider > .slider-item');
+      }
+
+      function bufferImages(i) {
+        const items = getSliderItems();
+        const curr = items[i].firstElementChild;
+        if (curr.src.length === 0)
+          curr.src = imgs[i].parentNode.href;
+
+        if (i > 0) {
+          const prev = items[i - 1].firstElementChild;
+          if (prev.src.length === 0)
+            prev.src = imgs[i - 1].parentNode.href;
+        }
+
+        if (i < imgs.length - 1) {
+          const next = items[i + 1].firstElementChild;
+          if (next.src.length === 0)
+            next.src = imgs[i + 1].parentNode.href;
+        }
+      }
+
+      function addSliderItems() {
+        const obs = new IntersectionObserver(entries => {
+          let entry = entries.find(entry => entry.isIntersecting);
+          if (entry == null) return;
+
+          let idx = Array.from(getSliderItems()).findIndex(child => child === entry.target);
+          bufferImages(idx);
+          index = idx;
+        }, { threshold: 0.20 });
+
+        for (let i = 1; i < imgs.length; i++) {
+          let child = getSliderItems()[0].cloneNode(true);
+          obs.observe(child);
+          slider.appendChild(child);
+        }
+      }
+
+      function focusImage(idx) {
+        if (getSliderItems().length === 1) {
+          addSliderItems();
+          console.log('adding slider items');
+        }
+        bufferImages(idx);
+        index = idx
+
+        new IntersectionObserver((entries, observer) => {
+          slider.scrollLeft = getSliderItems()[idx].offsetLeft;
+          observer.unobserve(entries[0].target);
+        }, { threshold: 0.9 }).observe(slider);
+
+        slider.style.display = 'flex';
+        body.classList.toggle('noscroll');
+
+      }
+
+      function closePreview() {
+        slider.style.display = 'none';
+        body.classList.toggle('noscroll');
+        imgs[index].scrollIntoView({block: 'center' });
+      }
+
+      function imageClickHandler(idx) {
+        return (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          focusImage(idx);
+        };
+      }
+
+      slider.addEventListener('click', (e) => {
+        close.classList.toggle('is-hidden');
+      });
+
+      close.addEventListener('click', (e) => {
+        e.stopPropagation();
+        close.classList.toggle('is-hidden');
+        closePreview();
+      });
+
+      for (let i = 0; i < imgs.length; i++) {
+        imgs[i].addEventListener('click', imageClickHandler(i));
+      }
+
+      document.addEventListener('keyup', (e) => {
+        if (e.key === 'Escape') {
+          closePreview();
+          return;
+        }
+
+        if (e.key === 'ArrowRight') {
+          e.stopPropagation();
+          index = Math.min(index + 1, imgs.length - 1);
+          getSliderItems()[index].scrollIntoView();
+        }
+        else if (e.key === 'ArrowLeft') {
+          e.stopPropagation();
+          index = Math.max(index - 1, 0);
+          getSliderItems()[index].scrollIntoView();
+        }
+      });
+    </script>
+  </body>
+</html>
+"
+
 # parse_dir [path]
 # Create a gallery of the given directory and its subdirs in OUTDIR keeping
 # relative path consistent.
@@ -98,13 +342,13 @@ function parse_dir {
 
     for dir in "${path}"/*/; do parse_dir "${dir}"; done # Parse dirs preorder
 
-    cp index_top.html "${out}/index.html"
+    echo "$HTML_TOP" > "${out}/index.html"
 
     add_images "${path}" "${out}"
     add_videos "${path}" "${out}"
     add_dir_links "${path}" "${out}"
 
-    cat index_bottom.html >> "${out}/index.html"
+    echo "$HTML_BOTTOM" >> "${out}/index.html"
 }
 
 # add_images [in_dir] [out_dir]
@@ -238,7 +482,7 @@ function add_image {
     fi
 
     text="<a href='s_${name}'>
-        <img src='t_${name}' style='height: ${THUMB_MAX_Y}px;'/>
+        <img src='t_${name}' />
       </a>"
     write_node "${text}" "${out_dir}"
 }
