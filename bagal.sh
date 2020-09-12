@@ -149,34 +149,31 @@ HTML_TOP="
 
       .noscroll { overflow: hidden; }
 
-      a {
+      #container > a {
         display: contents;
       }
 
-      a > img {
-        transition: .2s ease-in-out;
-        opacity: 1;
+      #container > a > img, #container > video {
         object-fit: cover;
         flex-grow: 1;
         margin: 2px;
         height: ${THUMB_MAX_Y}px;
       }
 
-      a > img:hover {
-        opacity: 0.9;
+      #container > a > img:hover, #container > video:hover {
+        box-shadow: 0 0 0 2px #444;
       }
 
-      video {
-        flex-grow: 1;
-        object-fit: cover;
+      #container > video {
+        width: ${THUMB_MAX_X}px;
       }
 
       #close {
         position: fixed;
-        right: 3vh;
-        top: 3vh;
-        width: 3vh;
-        height: 3vh;
+        right: 32px;
+        top: 32px;
+        width: 32px;
+        height: 32px;
         opacity: 0.6;
       }
       #close:hover {
@@ -185,9 +182,9 @@ HTML_TOP="
       }
       #close:before, #close:after {
         position: absolute;
-        left: 1.5vh;
+        left: 15px;
         content: ' ';
-        height: 3vh;
+        height: 33px;
         width: 2px;
         background-color: #FFF;
       }
@@ -313,11 +310,13 @@ HTML_BOTTOM="
 
         if (e.key === 'ArrowRight') {
           e.stopPropagation();
+          e.preventDefault();
           index = Math.min(index + 1, imgs.length - 1);
           getSliderItems()[index].scrollIntoView();
         }
         else if (e.key === 'ArrowLeft') {
           e.stopPropagation();
+          e.preventDefault();
           index = Math.max(index - 1, 0);
           getSliderItems()[index].scrollIntoView();
         }
@@ -523,8 +522,7 @@ function add_video {
                "${new_path}.jpg"\
                -n < /dev/null
     fi
-    read width height <<< $(identify -format '%w %h' "${new_path}.jpg" 2> /dev/null)
-    text="<video width='${width}' height='${height}'
+    text="<video
 poster='${name}.jpg' preload='none' controls>
           <source src='${name}'>
         </video>"
