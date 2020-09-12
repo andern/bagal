@@ -73,7 +73,7 @@
       function closePreview() {
         slider.style.display = 'none';
         body.classList.toggle('noscroll');
-        imgs[index].scrollIntoView();
+        imgs[index].scrollIntoView({block: 'center' });
       }
 
       function imageClickHandler(idx) {
