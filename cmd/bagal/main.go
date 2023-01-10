@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"runtime"
@@ -18,26 +17,28 @@ import (
 )
 
 type Options struct {
-	Indir           string
-	Outdir          string
-	ImageExtensions string
-	VideoExtensions string
-	ThumbMaxWidth   int
-	ThumbMaxHeight  int
-	ScaleMaxWidth   int
-	ScaleMaxHeight  int
-	ParallellOps    int
-	Verbose         bool
+	Indir                  string
+	Outdir                 string
+	ImageExtensions        string
+	VideoExtensions        string
+	Convert2JpegExtensions string
+	ThumbMaxWidth          int
+	ThumbMaxHeight         int
+	ScaleMaxWidth          int
+	ScaleMaxHeight         int
+	ParallellOps           int
+	Verbose                bool
 }
 
 type Directory struct {
-	Name        string
-	Thumbnail   string
-	Images      int
-	Videos      int
-	Directories int
-	SubImages   int
-	SubVideos   int
+	Name         string
+	Thumbnail    string
+	SubThumbnail string
+	Images       int
+	Videos       int
+	Directories  int
+	SubImages    int
+	SubVideos    int
 }
 
 type FileType int
@@ -51,14 +52,14 @@ const (
 type File struct {
 	Type      FileType
 	Source    string
-	Target    string
+	Scale     string
 	Thumbnail string
 }
 
 var options Options
-var sem chan int
 var cleanup chan os.Signal
 var finishUp bool
+var converter MediaWebConverter
 
 func init() {
 	log.SetFlags(0)
@@ -67,6 +68,7 @@ func init() {
 	flag.StringVar(&options.Outdir, "o", "", "output directory")
 	flag.StringVar(&options.ImageExtensions, "image", "jpg,jpeg,gif,png,heic", "image file extensions")
 	flag.StringVar(&options.VideoExtensions, "video", "mp4,avi,mov", "video file extensions")
+	flag.StringVar(&options.Convert2JpegExtensions, "convert", "heic", "convert these extensions to jpeg")
 	flag.IntVar(&options.ThumbMaxWidth, "x", 400, "max width of thumbnail")
 	flag.IntVar(&options.ThumbMaxHeight, "y", 225, "max height of thumbnail")
 	flag.IntVar(&options.ScaleMaxWidth, "X", 1920, "max width of scaled images")
@@ -74,7 +76,6 @@ func init() {
 	flag.IntVar(&options.ParallellOps, "p", runtime.NumCPU(), "number of parallell operations")
 	flag.BoolVar(&options.Verbose, "v", false, "verbose output")
 
-	sem = make(chan int, options.ParallellOps)
 	cleanup = make(chan os.Signal)
 	signal.Notify(cleanup, os.Interrupt, syscall.SIGTERM)
 	go func() {
@@ -104,36 +105,14 @@ func main() {
 		log.SetOutput(ioutil.Discard)
 	}
 
+	converter = NewMediaWebConverter(options)
+
 	_, err := readDir(options.Indir)
 	if err != nil {
 		panic(err)
 	}
 
-	// Wait for all operations to finish
-	for i := 0; i < cap(sem); i++ {
-		sem <- 1
-	}
-}
-
-func ratelimit(cmd *exec.Cmd) {
-	sem <- 1
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		Setpgid: true,
-	}
-	go func() {
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			str := string(output)
-			if options.Verbose && str != "" {
-				log.Println(str)
-			}
-			log.Println(err.Error())
-		}
-		if options.Verbose {
-			log.Println(cmd.String())
-		}
-		<-sem
-	}()
+	converter.WaitForRatelimitedOperations()
 }
 
 func getFile(path string) (File, error) {
@@ -147,12 +126,12 @@ func getFile(path string) (File, error) {
 
 	if isImage(name) {
 		res.Type = Image
-		res.Target = fmt.Sprintf("s_%s", name)
+		res.Scale = fmt.Sprintf("s_%s", name)
 		res.Thumbnail = fmt.Sprintf("t_%s", name)
 	} else if isVideo(name) {
 		name = strings.TrimSuffix(name, filepath.Ext(name)) + ".mp4"
 		res.Type = Video
-		res.Target = fmt.Sprintf("%s", name)
+		res.Scale = fmt.Sprintf("%s", name)
 		res.Thumbnail = fmt.Sprintf("%s.jpg", name)
 	} else {
 		res.Type = Unknown
@@ -218,6 +197,15 @@ func readDir(dirpath string) (Directory, error) {
 			return Directory{}, err
 		}
 
+		fmt.Printf("%s: %d\n", dirEntry.Name(), subDir.Images+subDir.SubImages+subDir.Videos+subDir.SubVideos)
+		if subDir.Images+subDir.SubImages+subDir.Videos+subDir.SubVideos == 0 {
+			continue
+		}
+
+		if dir.SubThumbnail == "" && subDir.Thumbnail != "" {
+			dir.SubThumbnail = subDir.Thumbnail
+		}
+
 		sb.WriteString(DirectoryHTML(subDir))
 	}
 
@@ -227,20 +215,19 @@ func readDir(dirpath string) (Directory, error) {
 			return dir, err
 		}
 
-		err = convertFile(dirpath, outdir, file)
-		if err != nil {
-			return dir, err
-		}
-
+		converter.Convert(outdir, file)
 		sb.WriteString(FileHTML(file))
 
 		if file.Type == Image {
-			if dir.Thumbnail == "" {
-				dir.Thumbnail = filepath.Join(dir.Name, file.Thumbnail)
-			}
 			dir.Images = dir.Images + 1
 		} else if file.Type == Video {
 			dir.Videos = dir.Videos + 1
+		} else {
+			continue
+		}
+
+		if dir.Thumbnail == "" {
+			dir.Thumbnail = filepath.Join(dir.Name, file.Thumbnail)
 		}
 
 		if finishUp {

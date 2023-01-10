@@ -43,7 +43,7 @@ func FileHTML(f File) string {
 	if f.Type == Image {
 		return fmt.Sprintf(
 			"<a href='%s'><img src='%s' loading='lazy'/></a>",
-			f.Target,
+			f.Scale,
 			f.Thumbnail,
 		)
 	}
@@ -51,14 +51,18 @@ func FileHTML(f File) string {
 	return fmt.Sprintf(
 		"<video poster='%s' preload='none' controls><source src='%s'></video>",
 		f.Thumbnail,
-		f.Target,
+		f.Scale,
 	)
 }
 
 func DirectoryHTML(dir Directory) string {
 	var sb strings.Builder
 	sb.WriteString(fmt.Sprintf("<a class='folder' href='%s/index.html'>", dir.Name))
-	sb.WriteString(fmt.Sprintf("<img src='%s' />", dir.Thumbnail))
+	if dir.Thumbnail == "" {
+		sb.WriteString(fmt.Sprintf("<img src='%s/%s' />", dir.Name, dir.SubThumbnail))
+	} else {
+		sb.WriteString(fmt.Sprintf("<img src='%s' />", dir.Thumbnail))
+	}
 
 	/*
 		var stats []string
